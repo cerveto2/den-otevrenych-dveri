@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('Styles'); ?>
+  <style>
+    .child { background: var(--c-bg); border-radius: var(--r-card); padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-4); }
+    .child-head { min-height: 44px; }
+    .legend { padding: 0; margin-bottom: var(--s-2); }
+
+    .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: var(--s-2); }
+    .chip { position: relative; display: block; }
+    .chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+    .chip span {
+      display: flex; align-items: center; justify-content: center; min-height: 48px;
+      border: 1px solid var(--c-border-strong); border-radius: var(--r-control); background: var(--c-surface);
+      font-weight: 600; font-variant-numeric: tabular-nums;
+    }
+    .chip:hover span { border-color: var(--c-text-muted); }
+    .chip input:checked + span { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
+    .chip input:focus-visible + span { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+
+    .hours-list { display: flex; flex-direction: column; gap: var(--s-2); }
+    .hour {
+      display: flex; gap: var(--s-3); align-items: flex-start; min-height: 56px; padding: var(--s-3);
+      background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-control); cursor: pointer;
+      transition: border-color .12s ease-out, background-color .12s ease-out;
+    }
+    .hour:hover { border-color: var(--c-border-strong); }
+    .hour input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: var(--c-primary); cursor: inherit; }
+    .hour.is-checked { border-color: var(--c-primary); background: var(--c-primary-tint); }
+    .hour.is-disabled { cursor: not-allowed; background: var(--c-surface-muted); border-color: var(--c-border); }
+    .hour.is-disabled .hour-top, .hour.is-disabled .hour-sub { color: var(--c-text-muted); }
+    .hour-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .hour-top { display: flex; justify-content: space-between; gap: var(--s-2); font-weight: 600; }
+    .hour-time { font-weight: 500; color: var(--c-text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .hour-sub { font-size: var(--t-sm); color: var(--c-text-muted); overflow-wrap: anywhere; }
+    .hour-note { font-size: var(--t-sm); font-weight: 600; color: var(--c-text); }
+
+    .booking-group { display: flex; flex-direction: column; gap: var(--s-2); }
+    .booking-group + .booking-group { padding-top: var(--s-4); border-top: 1px solid var(--c-border); }
+    .booking-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .booking { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) 0; }
+    .booking + .booking { border-top: 1px solid var(--c-border); }
+    .booking-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .booking-when { display: flex; gap: var(--s-2); flex-wrap: wrap; font-weight: 600; }
+    .booking-when .num { font-weight: 500; color: var(--c-text-muted); }
+    .booking-what { font-size: var(--t-sm); color: var(--c-text-muted); overflow-wrap: anywhere; }
+
+    .link-box { display: flex; flex-direction: column; gap: var(--s-2); padding-top: var(--s-4); margin-top: var(--s-4); border-top: 1px solid var(--c-border); }
+    .link-row { display: flex; gap: var(--s-2); }
+    .link-row .input { font-size: var(--t-sm); min-height: 44px; color: var(--c-text-muted); }
+
+    .moje-head { display: flex; gap: var(--s-3); align-items: flex-start; margin-bottom: var(--s-4); }
+    .moje-head > svg { width: 28px; height: 28px; color: var(--c-success); flex: none; margin-top: 1px; }
+    .moje-head h2:focus { outline: none; }
+    .moje-head h2:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+
+    .sk-line { height: 16px; }
+    .sk-title { height: 28px; width: 60%; }
+    .sk-block { height: 48px; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#obsah">Přeskočit na obsah</a>
+
+  <header class="page-header">
+    <div class="wrap">
+      <span class="eyebrow" id="skola" hidden></span>
+      <h1 id="nazev">Den otevřených dveří</h1>
+      <p class="muted" id="datum"></p>
+    </div>
+  </header>
+
+  <main id="obsah">
+    <div class="wrap stack">
+
+      <div id="nacitani" class="card stack-sm" aria-hidden="true" hidden>
+        <div class="skeleton sk-title"></div>
+        <div class="skeleton sk-line"></div>
+        <div class="skeleton sk-block"></div>
+        <div class="skeleton sk-block"></div>
+        <div class="skeleton sk-block"></div>
+      </div>
+
+      <div id="chyba-nacteni" class="card stack-sm" hidden>
+        <div class="alert alert--danger" role="alert">
+          <span data-ikona="alert"></span>
+          <div><strong>Rezervace se nepodařilo načíst.</strong><span id="chyba-nacteni-text">Zkontrolujte připojení k internetu a zkuste to znovu.</span></div>
+        </div>
+        <button type="button" class="btn btn--secondary" id="znovu">Zkusit znovu</button>
+      </div>
+
+      <section id="moje" class="card" aria-labelledby="moje-h" hidden>
+        <div class="moje-head">
+          <span data-ikona="check"></span>
+          <div class="stack-sm" style="gap: var(--s-1)">
+            <h2 id="moje-h" tabindex="-1">Jste přihlášeni</h2>
+            <p class="muted small" id="moje-rodic"></p>
+          </div>
+        </div>
+        <div id="moje-seznam" class="stack-sm"></div>
+        <p class="small muted" style="margin-top: var(--s-3)">Potřebujete rezervaci zrušit? Obraťte se prosím na školu.</p>
+        <div class="link-box" id="odkaz-box" hidden>
+          <label class="legend" for="odkaz" style="margin: 0">Váš osobní odkaz</label>
+          <p class="small muted">Uložte si ho. Přes něj se k rezervacím vrátíte i z jiného zařízení.</p>
+          <div class="link-row">
+            <input class="input" id="odkaz" readonly>
+            <button type="button" class="btn btn--secondary" id="kopirovat"><span data-ikona="copy"></span>Kopírovat</button>
+          </div>
+        </div>
+        <p class="small muted" style="margin-top: var(--s-4)">
+          <span id="nejste-text"></span>
+          <button type="button" class="btn btn--text btn--sm" id="novy-rodic">Začít jako jiný rodič</button>
+        </p>
+      </section>
+
+      <div id="uzavreno" class="alert alert--info" hidden>
+        <span data-ikona="info"></span>
+        <div><strong>Přihlašování je uzavřené.</strong>Nové rezervace už nepřijímáme. S dotazem se obraťte přímo na školu.</div>
+      </div>
+
+      <section id="rezervace" class="card" aria-labelledby="form-h" hidden>
+        <div class="card-title">
+          <h2 id="form-h">Rezervace návštěvy výuky</h2>
+          <p class="muted small" id="form-popis">Vyberte třídu, do které chodí vaše dítě, a zaškrtněte hodiny, na které se chcete přijít podívat.</p>
+        </div>
+
+        <form id="form" class="stack" novalidate>
+          <fieldset class="stack-sm">
+            <legend class="visually-hidden">Vaše údaje</legend>
+            <div class="field">
+              <label for="rodic">Vaše jméno a příjmení</label>
+              <input class="input" id="rodic" name="rodic" autocomplete="name" autocapitalize="words" maxlength="80" aria-describedby="rodic-err">
+              <div class="field-error" id="rodic-err" hidden></div>
+            </div>
+            <div class="field">
+              <label for="email">E-mail <span class="muted" style="font-weight: 400">(nepovinné)</span></label>
+              <input class="input" id="email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="120" aria-describedby="email-hint email-err">
+              <p class="hint" id="email-hint">Pošleme vám potvrzení s odkazem na vaše rezervace.</p>
+              <div class="field-error" id="email-err" hidden></div>
+            </div>
+          </fieldset>
+
+          <div id="deti" class="stack"></div>
+
+          <button type="button" class="btn btn--secondary" id="pridat-dite"><span data-ikona="plus"></span>Přidat další dítě</button>
+
+          <div id="form-chyba" class="alert alert--danger" role="alert" hidden></div>
+
+          <button type="submit" class="btn btn--primary btn--block" id="odeslat">Rezervovat</button>
+        </form>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="toast-region" id="toasty" role="status" aria-live="polite"></div>
+
+<script>
+  const IKONY = {
+    alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+    check: '<circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.5 2.5L16 9.5"/>',
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>'
+  };
+  const KLIC_TOKEN = 'dod-token';
+  // Adresa webové aplikace (…/exec). Vyplňuje se jen ve verzi pro GitHub Pages, v Apps Scriptu zůstává prázdná.
+  const API_URL = '';
+  const vAppsScriptu = typeof google !== 'undefined' && !!google.script;
+
+  const stav = { data: null, token: null, moje: null, dalsiId: 1, odesilam: false };
+
+  function ikona(n) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + IKONY[n] + '</svg>';
+  }
+  function el(id) { return document.getElementById(id); }
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function cas(t) { return String(t || '').replace(/^0(\d)/, '$1'); }
+  function casRozsah(t) { return String(t || '').split('–').map(cas).join('–'); }
+  function ucebna(u) { return !u ? '' : /^\d/.test(u) ? 'učebna ' + u : u; }
+  function norm(t) { return String(t || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('cs'); }
+  function predlozkaV(h) { return [2, 3, 4].indexOf(Number(h)) !== -1 ? 'Ve' : 'V'; }
+  function zprava(err) { return String((err && err.message) || err || 'Neznámá chyba').replace(/^(Exception|Error):\s*/, ''); }
+  function vyplnIkony(koren) {
+    (koren || document).querySelectorAll('[data-ikona]').forEach(s => { s.outerHTML = ikona(s.dataset.ikona); });
+  }
+
+  function nactiToken() { try { return localStorage.getItem(KLIC_TOKEN); } catch (e) { return null; } }
+  function ulozToken(t) { try { localStorage.setItem(KLIC_TOKEN, t); } catch (e) { /* nepovinné */ } }
+  function smazToken() { try { localStorage.removeItem(KLIC_TOKEN); } catch (e) { /* nepovinné */ } }
+
+  function api(fn, ...args) {
+    if (vAppsScriptu) {
+      return new Promise((resolve, reject) => {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+      });
+    }
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL)) {
+      return Promise.reject(new Error('Stránka není nastavená – v souboru chybí adresa webové aplikace (…/exec).'));
+    }
+    // text/plain = jednoduchý požadavek bez CORS preflightu; bez cookies, takže nevadí víc Google účtů.
+    return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args }), credentials: 'omit' })
+      .catch(() => { throw new Error('Nepodařilo se spojit se serverem.'); })
+      .then(r => { if (!r.ok) throw new Error('Server odpověděl chybou ' + r.status + '.'); return r.json(); })
+      .then(o => { if (!o.ok) throw new Error(o.chyba); return o.vysledek; });
+  }
+
+  function nactiParametry(cb) {
+    if (vAppsScriptu) google.script.url.getLocation(loc => cb((loc && loc.parameter) || {}));
+    else cb(Object.fromEntries(new URLSearchParams(location.search)));
+  }
+
+  /* ---------- Načtení ---------- */
+
+  function start() {
+    vyplnIkony();
+    nactiParametry(parametry => {
+      const zUrl = parametry.r;
+      if (zUrl) ulozToken(zUrl);
+      stav.token = zUrl || nactiToken() || null;
+      nactiData();
+    });
+  }
+
+  function nactiData() {
+    el('chyba-nacteni').hidden = true;
+    const skeleton = setTimeout(() => { el('nacitani').hidden = false; }, 400);
+    api('getUvodniData', stav.token)
+      .then(d => {
+        clearTimeout(skeleton);
+        el('nacitani').hidden = true;
+        stav.data = d;
+        stav.moje = d.moje;
+        if (d.moje && !d.moje.rodic) { smazToken(); stav.token = null; stav.moje = null; }
+        vykresli();
+      })
+      .catch(err => {
+        clearTimeout(skeleton);
+        el('nacitani').hidden = true;
+        el('chyba-nacteni').hidden = false;
+        el('chyba-nacteni-text').textContent = ' ' + zprava(err) + ' Zkontrolujte připojení k internetu a zkuste to znovu.';
+      });
+  }
+
+  function vykresli() {
+    const d = stav.data;
+    el('nazev').textContent = d.nazev;
+    el('datum').textContent = d.datumText.charAt(0).toUpperCase() + d.datumText.slice(1);
+    el('skola').textContent = d.skola || '';
+    el('skola').hidden = !d.skola;
+
+    vykresliMoje();
+
+    el('uzavreno').hidden = d.otevreno;
+    el('rezervace').hidden = !d.otevreno;
+    if (!d.otevreno) return;
+
+    if (stav.moje) {
+      if (!el('rodic').value) el('rodic').value = stav.moje.rodic || '';
+      if (!el('email').value) el('email').value = stav.moje.email || '';
+    }
+    if (!el('deti').children.length) pridatDite(false);
+  }
+
+  /* ---------- Moje rezervace ---------- */
+
+  function vykresliMoje() {
+    const m = stav.moje;
+    const ma = !!(m && m.rezervace && m.rezervace.length);
+    el('moje').hidden = !ma;
+    el('form-h').textContent = ma ? 'Přidat další návštěvu' : 'Rezervace návštěvy výuky';
+    el('form-popis').textContent = ma
+      ? 'Můžete přidat další hodiny nebo další dítě.'
+      : 'Vyberte třídu, do které chodí vaše dítě, a zaškrtněte hodiny, na které se chcete přijít podívat.';
+    if (!ma) return;
+
+    el('moje-rodic').textContent = 'Rodič: ' + m.rodic;
+    el('nejste-text').textContent = 'Nejste ' + m.rodic + '?';
+
+    const skupiny = [];
+    m.rezervace.forEach(r => {
+      let g = skupiny.find(x => norm(x.dite) === norm(r.dite) && x.trida === r.trida);
+      if (!g) skupiny.push(g = { dite: r.dite, trida: r.trida, polozky: [] });
+      g.polozky.push(r);
+    });
+
+    el('moje-seznam').innerHTML = skupiny.map(g => `
+      <div class="booking-group">
+        <div class="row"><h3>${esc(g.dite)}</h3><span class="badge badge--primary">${esc(g.trida)}</span></div>
+        <ul class="booking-list">
+          ${g.polozky.map(r => `
+            <li class="booking">
+              <div class="booking-info">
+                <div class="booking-when"><span>${r.hodina}. hodina</span><span class="num">${esc(casRozsah(r.cas))}</span></div>
+                <div class="booking-what">${esc(r.predmet)}${r.ucebna ? ' · ' + esc(ucebna(r.ucebna)) : ''}</div>
+              </div>
+            </li>`).join('')}
+        </ul>
+      </div>`).join('');
+
+    const url = vAppsScriptu ? stav.data.zakladniUrl : location.origin + location.pathname;
+    el('odkaz-box').hidden = !url;
+    if (url) el('odkaz').value = url + '?r=' + encodeURIComponent(stav.token);
+  }
+
+  el('kopirovat').addEventListener('click', async () => {
+    const pole = el('odkaz');
+    try {
+      await navigator.clipboard.writeText(pole.value);
+      toast('Odkaz je zkopírovaný.');
+    } catch (e) {
+      pole.focus();
+      pole.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      toast(ok ? 'Odkaz je zkopírovaný.' : 'Odkaz je označený – zkopírujte si ho.');
+    }
+  });
+
+  el('novy-rodic').addEventListener('click', () => {
+    smazToken();
+    stav.token = null;
+    stav.moje = null;
+    el('rodic').value = '';
+    el('email').value = '';
+    el('deti').innerHTML = '';
+    vykresliMoje();
+    if (stav.data.otevreno) pridatDite(false);
+    el('rodic').focus();
+  });
+
+  /* ---------- Formulář: děti ---------- */
+
+  function pridatDite(fokus) {
+    const id = stav.dalsiId++;
+    const s = document.createElement('section');
+    s.className = 'child';
+    s.dataset.id = id;
+    s.setAttribute('aria-labelledby', 'dite-h-' + id);
+    s.innerHTML = `
+      <div class="row row--between child-head">
+        <h3 id="dite-h-${id}" class="child-title">Dítě</h3>
+        <button type="button" class="icon-btn" data-akce="odebrat">${ikona('x')}</button>
+      </div>
+      <div class="field">
+        <label for="dite-${id}">Jméno a příjmení dítěte</label>
+        <input class="input" id="dite-${id}" name="dite" autocomplete="off" autocapitalize="words" maxlength="80" aria-describedby="dite-${id}-err">
+        <div class="field-error" id="dite-${id}-err" hidden></div>
+      </div>
+      <fieldset aria-describedby="trida-${id}-err">
+        <legend class="legend">Třída</legend>
+        <div class="chips">
+          ${stav.data.tridy.map(t => `<label class="chip"><input type="radio" name="trida-${id}" value="${esc(t.trida)}"><span>${esc(t.trida)}</span></label>`).join('')}
+        </div>
+        <div class="field-error" id="trida-${id}-err" hidden style="margin-top: var(--s-2)"></div>
+      </fieldset>
+      <fieldset class="hours" aria-describedby="hodiny-${id}-hint hodiny-${id}-err" hidden>
+        <legend class="legend">Hodiny, na které chcete přijít</legend>
+        <div class="stack-sm" style="gap: var(--s-2)">
+          <p class="small muted" id="hodiny-${id}-hint"></p>
+          <div class="hours-list"></div>
+          <div class="alert alert--warning konflikt" hidden></div>
+          <div class="field-error" id="hodiny-${id}-err" hidden></div>
+        </div>
+      </fieldset>`;
+    el('deti').appendChild(s);
+    precislujDeti();
+    if (fokus) s.querySelector('[name="dite"]').focus();
+  }
+
+  function precislujDeti() {
+    const bloky = [...el('deti').children];
+    bloky.forEach((s, i) => {
+      s.querySelector('.child-title').textContent = bloky.length > 1 ? (i + 1) + '. dítě' : 'Dítě';
+      const b = s.querySelector('[data-akce="odebrat"]');
+      b.hidden = bloky.length < 2;
+      b.setAttribute('aria-label', 'Odebrat ' + (i + 1) + '. dítě');
+    });
+  }
+
+  function vybranaTrida(s) {
+    const r = s.querySelector('input[type="radio"]:checked');
+    return r ? r.value : '';
+  }
+  function zaskrtnuteHodiny(s) {
+    return [...s.querySelectorAll('.hours-list input:checked')].map(i => Number(i.value));
+  }
+  function jizRezervovano(dite, trida, hodina) {
+    if (!stav.moje || !dite) return false;
+    return stav.moje.rezervace.some(r => norm(r.dite) === norm(dite) && r.trida === trida && r.hodina === hodina);
+  }
+  function rozsahHodin(hodiny) {
+    const c = hodiny.map(h => h.hodina);
+    const souvisle = c.every((h, i) => i === 0 || h === c[i - 1] + 1);
+    if (c.length === 1) return c[0] + '. hodinu';
+    if (souvisle) return c[0] + '.–' + c[c.length - 1] + '. hodinu';
+    return c.slice(0, -1).map(h => h + '.').join(', ') + ' a ' + c[c.length - 1] + '. hodinu';
+  }
+
+  function vykresliHodiny(s) {
+    const trida = vybranaTrida(s);
+    const t = stav.data.tridy.find(x => x.trida === trida);
+    const blok = s.querySelector('.hours');
+    if (!t) { blok.hidden = true; return; }
+    const ponechat = s.dataset.trida === trida ? zaskrtnuteHodiny(s) : [];
+    s.dataset.trida = trida;
+    const dite = s.querySelector('[name="dite"]').value;
+    const id = s.dataset.id;
+
+    blok.hidden = false;
+    el('hodiny-' + id + '-hint').textContent = 'Ve třídě ' + trida + ' můžete přijít na ' + rozsahHodin(t.hodiny) + '.';
+    s.querySelector('.hours-list').innerHTML = t.hodiny.map(h => {
+      const jiz = jizRezervovano(dite, trida, h.hodina);
+      const zakazano = jiz || h.plno;
+      const zaskrtnuto = !zakazano && ponechat.indexOf(h.hodina) !== -1;
+      const poznamka = jiz ? 'Už máte rezervováno' : h.plno ? 'Obsazeno' : '';
+      return `
+        <label class="hour${zakazano ? ' is-disabled' : ''}${zaskrtnuto ? ' is-checked' : ''}">
+          <input type="checkbox" value="${h.hodina}"${zakazano ? ' disabled' : ''}${zaskrtnuto ? ' checked' : ''}>
+          <span class="hour-main">
+            <span class="hour-top"><span>${h.hodina}. hodina</span><span class="hour-time">${cas(h.zacatek)}–${cas(h.konec)}</span></span>
+            <span class="hour-sub">${esc(h.predmet)}${h.ucebna ? ' · ' + esc(ucebna(h.ucebna)) : ''}</span>
+            ${poznamka ? `<span class="hour-note">${poznamka}</span>` : ''}
+          </span>
+        </label>`;
+    }).join('');
+  }
+
+  function aktualizujKonflikty() {
+    const obsazeno = {};
+    const pridej = (h, trida, zdroj) => { (obsazeno[h] = obsazeno[h] || []).push({ trida, zdroj }); };
+    (stav.moje ? stav.moje.rezervace : []).forEach(r => pridej(r.hodina, r.trida, 'moje'));
+    const bloky = [...el('deti').children];
+    bloky.forEach(s => zaskrtnuteHodiny(s).forEach(h => pridej(h, vybranaTrida(s), s.dataset.id)));
+
+    bloky.forEach(s => {
+      const trida = vybranaTrida(s);
+      const zpravy = zaskrtnuteHodiny(s).map(h => {
+        const jine = [...new Set(obsazeno[h].filter(x => x.trida !== trida).map(x => x.trida))];
+        return jine.length ? `${predlozkaV(h)} ${h}. hodině máte vybranou i třídu ${jine.join(', ')}.` : '';
+      }).filter(Boolean);
+      const box = s.querySelector('.konflikt');
+      box.hidden = !zpravy.length;
+      if (zpravy.length) box.innerHTML = ikona('alert') + `<div>${esc(zpravy.join(' '))} Obě návštěvy najednou nestihnete – zkontrolujte výběr.</div>`;
+    });
+  }
+
+  el('pridat-dite').addEventListener('click', () => pridatDite(true));
+
+  el('deti').addEventListener('click', e => {
+    const b = e.target.closest('[data-akce="odebrat"]');
+    if (!b) return;
+    const s = b.closest('.child');
+    const index = [...el('deti').children].indexOf(s);
+    s.remove();
+    precislujDeti();
+    aktualizujKonflikty();
+    const zbyle = [...el('deti').children];
+    const dalsi = zbyle[Math.max(0, index - 1)];
+    if (dalsi) dalsi.querySelector('[name="dite"]').focus();
+  });
+
+  el('deti').addEventListener('change', e => {
+    const s = e.target.closest('.child');
+    if (!s) return;
+    if (e.target.type === 'radio') {
+      ukazChybu('trida-' + s.dataset.id + '-err', null);
+      vykresliHodiny(s);
+    }
+    if (e.target.type === 'checkbox') {
+      e.target.closest('.hour').classList.toggle('is-checked', e.target.checked);
+      if (e.target.checked) ukazChybu('hodiny-' + s.dataset.id + '-err', null);
+    }
+    aktualizujKonflikty();
+  });
+
+  el('deti').addEventListener('focusout', e => {
+    if (e.target.name !== 'dite') return;
+    const s = e.target.closest('.child');
+    if (e.target.value.trim() || e.target.getAttribute('aria-invalid') === 'true') validujDite(s);
+    if (vybranaTrida(s)) { vykresliHodiny(s); aktualizujKonflikty(); }
+  });
+
+  /* ---------- Validace ---------- */
+
+  function ukazChybu(idChyby, text, pole) {
+    const box = el(idChyby);
+    if (!box) return;
+    box.hidden = !text;
+    box.innerHTML = text ? ikona('alert') + '<span>' + esc(text) + '</span>' : '';
+    if (pole) pole.setAttribute('aria-invalid', text ? 'true' : 'false');
+  }
+
+  function validujRodice() {
+    const p = el('rodic');
+    const ok = p.value.trim().length >= 3;
+    ukazChybu('rodic-err', ok ? null : 'Zadejte své jméno a příjmení.', p);
+    return ok ? null : p;
+  }
+  function validujEmail() {
+    const p = el('email');
+    const v = p.value.trim();
+    const ok = !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    ukazChybu('email-err', ok ? null : 'Zadejte e-mail ve tvaru jana.novakova@email.cz, nebo pole nechte prázdné.', p);
+    return ok ? null : p;
+  }
+  function validujDite(s) {
+    const p = s.querySelector('[name="dite"]');
+    const ok = p.value.trim().length >= 2;
+    ukazChybu(p.id + '-err', ok ? null : 'Zadejte jméno a příjmení dítěte.', p);
+    return ok ? null : p;
+  }
+  function validujTridu(s) {
+    const ok = !!vybranaTrida(s);
+    ukazChybu('trida-' + s.dataset.id + '-err', ok ? null : 'Vyberte třídu, do které dítě chodí.');
+    return ok ? null : s.querySelector('input[type="radio"]');
+  }
+  function validujHodiny(s) {
+    if (!vybranaTrida(s)) return null;
+    const ok = zaskrtnuteHodiny(s).length > 0;
+    ukazChybu('hodiny-' + s.dataset.id + '-err', ok ? null : 'Vyberte aspoň jednu hodinu.');
+    return ok ? null : s.querySelector('.hours-list input:not(:disabled)');
+  }
+
+  el('rodic').addEventListener('blur', () => { if (el('rodic').value.trim() || el('rodic').getAttribute('aria-invalid') === 'true') validujRodice(); });
+  el('email').addEventListener('blur', validujEmail);
+
+  /* ---------- Odeslání ---------- */
+
+  el('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (stav.odesilam) return;
+    el('form-chyba').hidden = true;
+
+    const bloky = [...el('deti').children];
+    const chyby = [validujRodice(), validujEmail()];
+    bloky.forEach(s => chyby.push(validujDite(s), validujTridu(s), validujHodiny(s)));
+    const prvni = chyby.find(Boolean);
+    if (prvni) { prvni.focus(); return; }
+
+    const data = {
+      token: stav.token,
+      rodic: el('rodic').value.trim(),
+      email: el('email').value.trim(),
+      deti: bloky.map(s => ({ dite: s.querySelector('[name="dite"]').value.trim(), trida: vybranaTrida(s), hodiny: zaskrtnuteHodiny(s) }))
+    };
+
+    nastavOdesilani(true);
+    try {
+      const v = await api('rezervovat', data);
+      stav.token = v.token;
+      ulozToken(v.token);
+      stav.moje = v.moje;
+      el('deti').innerHTML = '';
+      pridatDite(false);
+      vykresliMoje();
+      el('moje').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      el('moje-h').focus({ preventScroll: true });
+      if (!v.ulozeno) toast('Tyto hodiny už máte zarezervované.');
+      else toast('Rezervace je uložená.' + (data.email ? ' Potvrzení jsme poslali na ' + data.email + '.' : ''));
+    } catch (err) {
+      el('form-chyba').hidden = false;
+      el('form-chyba').innerHTML = ikona('alert') + '<div><strong>Rezervaci se nepodařilo uložit.</strong>' + esc(zprava(err)) + '</div>';
+      el('form-chyba').scrollIntoView({ block: 'center' });
+    } finally {
+      nastavOdesilani(false);
+    }
+  });
+
+  function nastavOdesilani(ano) {
+    stav.odesilam = ano;
+    const b = el('odeslat');
+    b.disabled = ano;
+    b.innerHTML = ano ? '<span class="spinner" aria-hidden="true"></span>Ukládám…' : 'Rezervovat';
+  }
+
+  /* ---------- Toast ---------- */
+
+  let toastCasovac = null;
+  function toast(text, akce) {
+    const oblast = el('toasty');
+    clearTimeout(toastCasovac);
+    oblast.innerHTML = `<div class="toast"><p>${esc(text)}</p>${akce ? `<button type="button" class="btn btn--text btn--sm" data-toast="akce">${esc(akce.text)}</button>` : ''}<button type="button" class="icon-btn" data-toast="zavrit" aria-label="Zavřít oznámení">${ikona('x')}</button></div>`;
+    const zavrit = () => { oblast.innerHTML = ''; };
+    oblast.querySelector('[data-toast="zavrit"]').onclick = zavrit;
+    if (akce) oblast.querySelector('[data-toast="akce"]').onclick = () => { zavrit(); akce.fn(); };
+    if (!akce) toastCasovac = setTimeout(zavrit, 6000);
+  }
+
+  el('znovu').addEventListener('click', nactiData);
+  start();
+</script>
+</body>
+</html>

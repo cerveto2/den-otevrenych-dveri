@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('Styles'); ?>
+  <style>
+    .admin-header .wrap { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3); padding-top: var(--s-4); padding-bottom: var(--s-4); }
+    .admin-header h1 { font-size: var(--t-xl); }
+    .header-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+
+    .login { max-width: 420px; margin: var(--s-6) auto 0; }
+    .password-row { position: relative; }
+    .password-row .input { padding-right: 52px; }
+    .password-row .icon-btn { position: absolute; right: 2px; top: 2px; }
+
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); }
+    .stat { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-card); padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: 2px; }
+    .stat-value { font-size: var(--t-3xl); font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: var(--t-sm); color: var(--c-text-muted); }
+    @media (max-width: 420px) { .stat { padding: var(--s-3); } .stat-value { font-size: var(--t-2xl); } .stat-label { font-size: var(--t-xs); } }
+
+    .status-line { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); align-items: center; font-size: var(--t-sm); color: var(--c-text-muted); }
+
+    .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .matrix { border-collapse: collapse; width: 100%; min-width: 300px; font-variant-numeric: tabular-nums; }
+    .matrix th, .matrix td { padding: 2px; text-align: center; }
+    .matrix thead th { font-size: var(--t-xs); font-weight: 600; color: var(--c-text-muted); padding-bottom: var(--s-2); }
+    .matrix tbody th { text-align: left; font-weight: 600; padding-right: var(--s-2); white-space: nowrap; }
+    .cell { width: 100%; min-width: 36px; min-height: 40px; border-radius: var(--r-control); border: 1px solid var(--c-border); background: var(--c-surface); font: 600 var(--t-md)/1 var(--font); font-variant-numeric: tabular-nums; color: var(--c-text); cursor: pointer; }
+    .cell:hover { border-color: var(--c-border-strong); }
+    .cell.has { background: var(--c-primary-tint); border-color: transparent; color: var(--c-primary); }
+    .cell.zero { color: var(--c-text-muted); font-weight: 400; }
+    .cell[aria-pressed="true"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
+    .cell-off { color: var(--c-border-strong); }
+
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); align-items: end; }
+    .toolbar .field--search { grid-column: 1 / -1; }
+    .toolbar-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; justify-content: space-between; }
+    @media (min-width: 860px) {
+      .toolbar { grid-template-columns: 170px 170px 1fr auto; }
+      .toolbar .field--search { grid-column: auto; }
+    }
+    .check { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 48px; font-size: var(--t-sm); cursor: pointer; }
+    .check input { width: 20px; height: 20px; accent-color: var(--c-primary); margin: 0; }
+
+    .segmented { display: inline-flex; background: var(--c-surface-muted); border-radius: var(--r-control); padding: 2px; }
+    .segmented button { min-height: 40px; padding: 0 var(--s-4); border: 0; background: transparent; border-radius: 6px; font: 600 var(--t-sm)/1 var(--font); color: var(--c-text-muted); cursor: pointer; }
+    .segmented button[aria-pressed="true"] { background: var(--c-surface); color: var(--c-text); box-shadow: 0 1px 2px rgba(20, 30, 25, .12); }
+
+    .chips-active { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+    .filter-chip { display: inline-flex; align-items: center; gap: var(--s-1); min-height: 32px; padding: 0 var(--s-1) 0 var(--s-3); border-radius: var(--r-pill); background: var(--c-primary-tint); color: var(--c-primary); font: 600 var(--t-sm)/1 var(--font); border: 0; cursor: pointer; }
+    .filter-chip svg { width: 16px; height: 16px; margin: 0 var(--s-1); }
+
+    .slots { display: grid; grid-template-columns: 1fr; gap: var(--s-3); }
+    @media (min-width: 900px) { .slots { grid-template-columns: 1fr 1fr; } }
+    .slot { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-card); padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); break-inside: avoid; }
+    .slot-head { display: flex; justify-content: space-between; gap: var(--s-3); align-items: flex-start; }
+    .slot-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .slot-meta { font-size: var(--t-sm); color: var(--c-text-muted); overflow-wrap: anywhere; }
+    .slot-count { font-size: var(--t-2xl); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; }
+    .slot-count small { display: block; font-size: var(--t-xs); font-weight: 500; color: var(--c-text-muted); margin-top: 2px; }
+    .people { list-style: none; margin: 0; padding: 0; }
+    .person { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); padding: var(--s-2) 0; border-top: 1px solid var(--c-border); }
+    .person-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .person-name { font-weight: 600; overflow-wrap: anywhere; }
+    .person-sub { font-size: var(--t-sm); color: var(--c-text-muted); overflow-wrap: anywhere; }
+    .is-cancelled .person-name, .is-cancelled .person-sub, tr.is-cancelled td:not(:last-child) { text-decoration: line-through; color: var(--c-text-muted); }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+    .data-table th { position: sticky; top: 0; background: var(--c-surface); text-align: left; font-weight: 600; color: var(--c-text-muted); padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--c-border-strong); white-space: nowrap; z-index: 1; }
+    .data-table td { padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--c-border); height: 48px; vertical-align: middle; }
+    .data-table tbody tr:hover td { background: var(--c-bg); }
+    .data-table .num { white-space: nowrap; }
+    .sort-btn { display: inline-flex; align-items: center; gap: var(--s-1); border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; min-height: 32px; }
+    .sort-btn svg { width: 14px; height: 14px; }
+    .table-card { padding: 0; overflow: hidden; }
+    .table-wrap { max-height: 70vh; overflow: auto; }
+
+    .cards-wrap { display: none; padding-top: var(--s-1); padding-bottom: var(--s-1); }
+    .cards { list-style: none; margin: 0; padding: 0; }
+    .rcard { padding: var(--s-3) 0; border-top: 1px solid var(--c-border); display: flex; flex-direction: column; gap: var(--s-1); }
+    .rcard:first-child { border-top: 0; }
+    .rcard-top { display: flex; justify-content: space-between; gap: var(--s-2); align-items: center; }
+    @media (max-width: 759px) {
+      .table-card { display: none; }
+      .cards-wrap { display: block; }
+    }
+
+    .pager { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); flex-wrap: wrap; font-size: var(--t-sm); color: var(--c-text-muted); margin-top: var(--s-3); }
+
+    .empty { text-align: center; padding: var(--s-6) var(--s-4); display: flex; flex-direction: column; gap: var(--s-2); align-items: center; }
+    .empty svg { width: 32px; height: 32px; color: var(--c-text-muted); }
+
+    @media print {
+      body { background: #fff; }
+      .no-print, .toast-region, .skip-link { display: none !important; }
+      main { padding: 0; }
+      .slots { grid-template-columns: 1fr 1fr; }
+      .slot { border-color: #999; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#obsah">Přeskočit na obsah</a>
+
+  <header class="page-header admin-header">
+    <div class="wrap wrap--wide">
+      <div class="stack-sm" style="gap: 2px">
+        <span class="eyebrow">Administrace</span>
+        <h1 id="nazev">Den otevřených dveří</h1>
+        <p class="muted small" id="datum"></p>
+      </div>
+      <div class="header-actions no-print" id="akce-hlavicka" hidden>
+        <button type="button" class="btn btn--secondary btn--sm" id="obnovit"><span data-ikona="refresh"></span>Obnovit</button>
+        <a class="btn btn--secondary btn--sm" id="tabulka" href="#" target="_blank" rel="noopener"><span data-ikona="sheet"></span>Tabulka</a>
+        <button type="button" class="btn btn--text btn--sm" id="odhlasit">Odhlásit</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="obsah">
+    <div class="wrap wrap--wide">
+
+      <section class="card login" id="login" aria-labelledby="login-h" hidden>
+        <form id="login-form" class="stack-sm" novalidate>
+          <h2 id="login-h">Přihlášení</h2>
+          <p class="muted small">Zadejte heslo administrátorů. Dostanete ho od správce tabulky.</p>
+          <div class="field">
+            <label for="heslo">Heslo</label>
+            <div class="password-row">
+              <input class="input" id="heslo" type="password" autocomplete="current-password" aria-describedby="heslo-err">
+              <button type="button" class="icon-btn" id="ukaz-heslo" aria-label="Zobrazit heslo" aria-pressed="false"><span data-ikona="eye"></span></button>
+            </div>
+            <div class="field-error" id="heslo-err" hidden></div>
+          </div>
+          <button type="submit" class="btn btn--primary btn--block" id="prihlasit">Přihlásit se</button>
+        </form>
+      </section>
+
+      <div id="nacitani" class="stack" aria-hidden="true" hidden>
+        <div class="stats"><div class="skeleton" style="height: 76px"></div><div class="skeleton" style="height: 76px"></div><div class="skeleton" style="height: 76px"></div></div>
+        <div class="skeleton" style="height: 280px"></div>
+      </div>
+
+      <div id="chyba" class="card stack-sm" hidden>
+        <div class="alert alert--danger" role="alert"><span data-ikona="alert"></span><div><strong>Data se nepodařilo načíst.</strong><span id="chyba-text"></span></div></div>
+        <button type="button" class="btn btn--secondary" id="znovu" style="align-self: flex-start">Zkusit znovu</button>
+      </div>
+
+      <div id="panel" class="stack" hidden>
+        <div class="stack-sm no-print">
+          <div class="status-line" id="status"></div>
+          <div class="stats" id="stats"></div>
+        </div>
+
+        <section class="card no-print" aria-labelledby="matice-h">
+          <div class="card-title">
+            <h2 id="matice-h">Obsazenost</h2>
+            <p class="muted small">Počet přihlášených rodičů na hodinu. Klepnutím na číslo zobrazíte, kdo přijde.</p>
+          </div>
+          <div class="scroll-x"><table class="matrix" id="matice"></table></div>
+        </section>
+
+        <section class="stack-sm" aria-labelledby="prehled-h">
+          <div class="row row--between">
+            <h2 id="prehled-h" tabindex="-1">Přihlášení rodiče</h2>
+            <div class="row no-print">
+              <div class="segmented" role="group" aria-label="Zobrazení">
+                <button type="button" data-pohled="hodiny" aria-pressed="true">Podle hodin</button>
+                <button type="button" data-pohled="seznam" aria-pressed="false">Seznam</button>
+              </div>
+              <button type="button" class="btn btn--secondary btn--sm" id="tisk"><span data-ikona="print"></span>Tisk</button>
+            </div>
+          </div>
+
+          <div class="card no-print">
+            <div class="toolbar">
+              <div class="field">
+                <label for="f-trida">Třída</label>
+                <select class="select" id="f-trida"></select>
+              </div>
+              <div class="field">
+                <label for="f-hodina">Hodina</label>
+                <select class="select" id="f-hodina"></select>
+              </div>
+              <div class="field field--search">
+                <label for="f-hledat">Hledat rodiče nebo dítě</label>
+                <input class="input" id="f-hledat" type="search" autocomplete="off" placeholder="např. Nováková">
+              </div>
+              <label class="check"><input type="checkbox" id="f-zrusene">Zobrazit i zrušené</label>
+              <div class="toolbar-row" id="aktivni-filtry" hidden>
+                <div class="chips-active" id="filtr-chipy"></div>
+                <button type="button" class="btn btn--text btn--sm" id="vymazat-filtry">Zrušit všechny filtry</button>
+              </div>
+            </div>
+          </div>
+
+          <p class="small muted" id="souhrn" aria-live="polite"></p>
+          <div id="vysledky"></div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="toast-region" id="toasty" role="status" aria-live="polite"></div>
+
+<script>
+  const IKONY = {
+    alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+    x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+    eyeOff: '<path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2.2 3.2M6.6 6.6C3.7 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6M2 2l20 20M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+    refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/>',
+    sheet: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+    print: '<path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/>',
+    up: '<path d="m18 15-6-6-6 6"/>',
+    down: '<path d="m6 9 6 6 6-6"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'
+  };
+  const NA_STRANKU = 50;
+  const stav = {
+    heslo: null, data: null,
+    filtry: { trida: '', hodina: '', q: '', zrusene: false },
+    pohled: 'hodiny', razeni: { klic: 'vytvoreno', smer: -1 }, stranka: 1
+  };
+
+  function ikona(n) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + IKONY[n] + '</svg>';
+  }
+  function el(id) { return document.getElementById(id); }
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function cas(t) { return String(t || '').split('–').map(x => x.replace(/^0(\d)/, '$1')).join('–'); }
+  function ucebna(u) { return !u ? '' : /^\d/.test(u) ? 'učebna ' + u : u; }
+  function norm(t) { return String(t || '').toLocaleLowerCase('cs').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function zprava(err) { return String((err && err.message) || err || 'Neznámá chyba').replace(/^(Exception|Error):\s*/, ''); }
+  function plural(n, a, b, c) { return n === 1 ? a : (n >= 2 && n <= 4 ? b : c); }
+  function vyplnIkony() { document.querySelectorAll('[data-ikona]').forEach(s => { s.outerHTML = ikona(s.dataset.ikona); }); }
+  function cti(k, typ) { try { return (typ === 's' ? sessionStorage : localStorage).getItem(k); } catch (e) { return null; } }
+  function zapis(k, v, typ) { try { const u = typ === 's' ? sessionStorage : localStorage; v == null ? u.removeItem(k) : u.setItem(k, v); } catch (e) { /* nepovinné */ } }
+  function plynule() { return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'; }
+
+  function api(fn, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+  }
+
+  /* ---------- Přihlášení a načtení ---------- */
+
+  function start() {
+    vyplnIkony();
+    stav.pohled = cti('dod-admin-pohled') === 'seznam' ? 'seznam' : 'hodiny';
+    const ulozene = cti('dod-admin-heslo', 's');
+    if (ulozene) { stav.heslo = ulozene; nacti(true); } else ukazLogin();
+  }
+
+  function ukazLogin() {
+    el('login').hidden = false;
+    el('panel').hidden = true;
+    el('akce-hlavicka').hidden = true;
+    el('heslo').focus();
+  }
+
+  el('ukaz-heslo').addEventListener('click', () => {
+    const p = el('heslo'), b = el('ukaz-heslo');
+    const ukazat = p.type === 'password';
+    p.type = ukazat ? 'text' : 'password';
+    b.setAttribute('aria-pressed', String(ukazat));
+    b.setAttribute('aria-label', ukazat ? 'Skrýt heslo' : 'Zobrazit heslo');
+    b.innerHTML = ikona(ukazat ? 'eyeOff' : 'eye');
+  });
+
+  el('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const heslo = el('heslo').value;
+    const chyba = (t) => {
+      el('heslo-err').hidden = !t;
+      el('heslo-err').innerHTML = t ? ikona('alert') + '<span>' + esc(t) + '</span>' : '';
+      el('heslo').setAttribute('aria-invalid', t ? 'true' : 'false');
+    };
+    if (!heslo) { chyba('Zadejte heslo administrátorů.'); el('heslo').focus(); return; }
+    const b = el('prihlasit');
+    b.disabled = true;
+    b.innerHTML = '<span class="spinner" aria-hidden="true"></span>Přihlašuji…';
+    try {
+      const data = await api('adminData', heslo);
+      chyba(null);
+      stav.heslo = heslo;
+      zapis('dod-admin-heslo', heslo, 's');
+      el('heslo').value = '';
+      el('login').hidden = true;
+      prijmiData(data);
+    } catch (err) {
+      chyba(zprava(err));
+      el('heslo').focus();
+    } finally {
+      b.disabled = false;
+      b.textContent = 'Přihlásit se';
+    }
+  });
+
+  function nacti(prvni) {
+    el('chyba').hidden = true;
+    const skeleton = prvni ? setTimeout(() => { el('nacitani').hidden = false; }, 400) : null;
+    const b = el('obnovit');
+    b.disabled = true;
+    return api('adminData', stav.heslo)
+      .then(data => { prijmiData(data); return true; })
+      .catch(err => {
+        const t = zprava(err);
+        if (/heslo/i.test(t)) { zapis('dod-admin-heslo', null, 's'); stav.heslo = null; ukazLogin(); return false; }
+        el('chyba').hidden = false;
+        el('chyba-text').textContent = ' ' + t;
+        return false;
+      })
+      .finally(() => { clearTimeout(skeleton); el('nacitani').hidden = true; b.disabled = false; });
+  }
+
+  function prijmiData(data) {
+    const poprve = !stav.data;
+    stav.data = data;
+    el('nacitani').hidden = true;
+    el('panel').hidden = false;
+    el('akce-hlavicka').hidden = false;
+    el('nazev').textContent = data.nazev;
+    el('datum').textContent = data.datumText.charAt(0).toUpperCase() + data.datumText.slice(1);
+    el('tabulka').href = data.tabulkaUrl;
+    if (poprve) naplnFiltry();
+    vykresli();
+  }
+
+  el('obnovit').addEventListener('click', () => nacti(false).then(ok => { if (ok) toast('Data jsou aktuální.'); }));
+  el('znovu').addEventListener('click', () => nacti(true));
+  el('odhlasit').addEventListener('click', () => {
+    zapis('dod-admin-heslo', null, 's');
+    stav.heslo = null;
+    stav.data = null;
+    ukazLogin();
+  });
+
+  /* ---------- Filtry ---------- */
+
+  function tridy() { return [...new Set(stav.data.rozvrh.filter(h => h.povoleno).map(h => h.trida))]; }
+
+  function naplnFiltry() {
+    el('f-trida').innerHTML = '<option value="">Všechny třídy</option>' + tridy().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    const hodiny = [...new Set(stav.data.rozvrh.filter(h => h.povoleno).map(h => h.hodina))].sort((a, b) => a - b);
+    el('f-hodina').innerHTML = '<option value="">Všechny hodiny</option>' + hodiny.map(h => `<option value="${h}">${h}. hodina</option>`).join('');
+    nastavPohled(stav.pohled, false);
+  }
+
+  function nastavFiltr(klic, hodnota) {
+    stav.filtry[klic] = hodnota;
+    stav.stranka = 1;
+    el('f-trida').value = stav.filtry.trida;
+    el('f-hodina').value = stav.filtry.hodina;
+    el('f-hledat').value = stav.filtry.q;
+    el('f-zrusene').checked = stav.filtry.zrusene;
+    vykresli();
+  }
+
+  el('f-trida').addEventListener('change', e => nastavFiltr('trida', e.target.value));
+  el('f-hodina').addEventListener('change', e => nastavFiltr('hodina', e.target.value));
+  el('f-zrusene').addEventListener('change', e => nastavFiltr('zrusene', e.target.checked));
+  let hledaniCasovac = null;
+  el('f-hledat').addEventListener('input', e => {
+    clearTimeout(hledaniCasovac);
+    hledaniCasovac = setTimeout(() => { stav.filtry.q = e.target.value.trim(); stav.stranka = 1; vykresli(); }, 200);
+  });
+  el('vymazat-filtry').addEventListener('click', () => {
+    stav.filtry = { trida: '', hodina: '', q: '', zrusene: false };
+    nastavFiltr('trida', '');
+    el('f-trida').focus();
+  });
+  el('filtr-chipy').addEventListener('click', e => {
+    const b = e.target.closest('[data-filtr]');
+    if (!b) return;
+    const k = b.dataset.filtr;
+    nastavFiltr(k, k === 'zrusene' ? false : '');
+    const dalsi = el('filtr-chipy').querySelector('.filter-chip');
+    (dalsi || el('f-trida')).focus();
+  });
+
+  document.querySelectorAll('[data-pohled]').forEach(b => b.addEventListener('click', () => nastavPohled(b.dataset.pohled, true)));
+  function nastavPohled(p, prekreslit) {
+    stav.pohled = p;
+    zapis('dod-admin-pohled', p);
+    document.querySelectorAll('[data-pohled]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pohled === p)));
+    if (prekreslit) vykresli();
+  }
+
+  el('tisk').addEventListener('click', () => {
+    if (stav.pohled !== 'hodiny') nastavPohled('hodiny', true);
+    setTimeout(() => window.print(), 50);
+  });
+
+  function filtrovane() {
+    const f = stav.filtry;
+    const q = norm(f.q);
+    return stav.data.rezervace.filter(r =>
+      (f.zrusene || r.stav === 'Aktivní') &&
+      (!f.trida || r.trida === f.trida) &&
+      (!f.hodina || r.hodina === Number(f.hodina)) &&
+      (!q || norm(r.rodic + ' ' + r.dite + ' ' + r.email).indexOf(q) !== -1));
+  }
+
+  /* ---------- Vykreslení ---------- */
+
+  function vykresli() {
+    const d = stav.data;
+    const aktivni = d.rezervace.filter(r => r.stav === 'Aktivní');
+    const rodiny = new Set(aktivni.map(r => r.rodina));
+    const deti = new Set(aktivni.map(r => r.rodina + '|' + norm(r.dite)));
+
+    el('status').innerHTML =
+      (d.otevreno ? '<span class="badge badge--primary">Přihlašování otevřeno</span>' : '<span class="badge badge--danger">Přihlašování uzavřeno</span>') +
+      '<span>' + (d.kapacita ? 'Limit ' + d.kapacita + ' ' + plural(d.kapacita, 'rodič', 'rodiče', 'rodičů') + ' na hodinu' : 'Bez limitu na hodinu') + '</span>' +
+      '<span>Aktualizováno ' + new Date().toLocaleTimeString('cs-CZ', { hour: 'numeric', minute: '2-digit' }) + '</span>';
+
+    el('stats').innerHTML = [
+      [rodiny.size, plural(rodiny.size, 'rodič', 'rodiče', 'rodičů')],
+      [deti.size, plural(deti.size, 'dítě', 'děti', 'dětí')],
+      [aktivni.length, plural(aktivni.length, 'návštěva hodiny', 'návštěvy hodin', 'návštěv hodin')]
+    ].map(([n, l]) => `<div class="stat"><span class="stat-value">${n}</span><span class="stat-label">${l}</span></div>`).join('');
+
+    vykresliMatici(aktivni);
+    vykresliFiltrChipy();
+
+    const radky = filtrovane();
+    if (stav.pohled === 'hodiny') vykresliHodiny(radky); else vykresliSeznam(radky);
+  }
+
+  function pocetRodin(seznam) { return new Set(seznam.map(r => r.rodina)).size; }
+
+  function vykresliMatici(aktivni) {
+    const rozvrh = stav.data.rozvrh;
+    const hodiny = [...new Set(rozvrh.filter(h => h.povoleno).map(h => h.hodina))].sort((a, b) => a - b);
+    const f = stav.filtry;
+    el('matice').innerHTML =
+      `<thead><tr><th scope="col"><span class="visually-hidden">Třída</span></th>${hodiny.map(h => `<th scope="col">${h}. h</th>`).join('')}</tr></thead><tbody>` +
+      tridy().map(t => `<tr><th scope="row">${esc(t)}</th>${hodiny.map(h => {
+        const slot = rozvrh.find(x => x.trida === t && x.hodina === h);
+        if (!slot || !slot.povoleno) return '<td class="cell-off"><span aria-hidden="true">–</span><span class="visually-hidden">nelze rezervovat</span></td>';
+        const n = pocetRodin(aktivni.filter(r => r.trida === t && r.hodina === h));
+        const vybrano = f.trida === t && String(f.hodina) === String(h);
+        return `<td><button type="button" class="cell${n ? ' has' : ' zero'}" data-t="${esc(t)}" data-h="${h}" aria-pressed="${vybrano}"
+          aria-label="${esc(t)}, ${h}. hodina: ${n} ${plural(n, 'rodič', 'rodiče', 'rodičů')}">${n}</button></td>`;
+      }).join('')}</tr>`).join('') + '</tbody>';
+  }
+
+  el('matice').addEventListener('click', e => {
+    const b = e.target.closest('.cell');
+    if (!b) return;
+    const uzVybrano = b.getAttribute('aria-pressed') === 'true';
+    stav.filtry.trida = uzVybrano ? '' : b.dataset.t;
+    nastavFiltr('hodina', uzVybrano ? '' : b.dataset.h);
+    if (!uzVybrano) el('prehled-h').scrollIntoView({ behavior: plynule() });
+  });
+
+  function vykresliFiltrChipy() {
+    const f = stav.filtry;
+    const chipy = [];
+    if (f.trida) chipy.push(['trida', 'Třída ' + f.trida]);
+    if (f.hodina) chipy.push(['hodina', f.hodina + '. hodina']);
+    if (f.q) chipy.push(['q', '„' + f.q + '“']);
+    if (f.zrusene) chipy.push(['zrusene', 'I zrušené']);
+    el('aktivni-filtry').hidden = !chipy.length;
+    el('filtr-chipy').innerHTML = chipy.map(([k, t]) =>
+      `<button type="button" class="filter-chip" data-filtr="${k}" aria-label="Odebrat filtr ${esc(t)}">${esc(t)}${ikona('x')}</button>`).join('');
+  }
+
+  function prazdno() {
+    if (!stav.data.rezervace.length) {
+      return `<div class="card empty">${ikona('users')}<p><strong>Zatím se nikdo nepřihlásil.</strong></p><p class="small muted">Jakmile se rodiče začnou přihlašovat, uvidíte je tady.</p></div>`;
+    }
+    return `<div class="card empty">${ikona('search')}<p><strong>Filtrům neodpovídá žádná rezervace.</strong></p><button type="button" class="btn btn--secondary btn--sm" data-akce="vymazat">Zrušit filtry</button></div>`;
+  }
+
+  function vykresliHodiny(radky) {
+    const f = stav.filtry;
+    const sloty = stav.data.rozvrh.filter(h => h.povoleno && (!f.trida || h.trida === f.trida) && (!f.hodina || h.hodina === Number(f.hodina)));
+    const sKym = sloty.map(s => ({ s, lide: radky.filter(r => r.trida === s.trida && r.hodina === s.hodina) }))
+      .filter(x => x.lide.length || (f.trida && !f.q));
+
+    const aktivnich = radky.filter(r => r.stav === 'Aktivní').length;
+    el('souhrn').textContent = sKym.length ? `${sKym.length} ${plural(sKym.length, 'hodina', 'hodiny', 'hodin')} · ${aktivnich} ${plural(aktivnich, 'přihlášený rodič', 'přihlášení rodiče', 'přihlášených rodičů')}` : '';
+    if (!sKym.length) { el('vysledky').innerHTML = prazdno(); return; }
+
+    el('vysledky').innerHTML = '<div class="slots">' + sKym.map(({ s, lide }) => {
+      const n = pocetRodin(lide.filter(r => r.stav === 'Aktivní'));
+      lide.sort((a, b) => a.rodic.localeCompare(b.rodic, 'cs'));
+      return `
+        <article class="slot">
+          <div class="slot-head">
+            <div class="slot-title">
+              <h3>${esc(s.trida)} · ${s.hodina}. hodina</h3>
+              <span class="slot-meta"><span class="num">${esc(cas(s.zacatek + '–' + s.konec))}</span> · ${esc(s.predmet)}${s.ucebna ? ' · ' + esc(ucebna(s.ucebna)) : ''}${s.vyucujici ? ' · ' + esc(s.vyucujici) : ''}</span>
+            </div>
+            <div class="slot-count">${n}<small>${plural(n, 'rodič', 'rodiče', 'rodičů')}</small></div>
+          </div>
+          ${lide.length ? `<ul class="people">${lide.map(r => `
+            <li class="person${r.stav !== 'Aktivní' ? ' is-cancelled' : ''}">
+              <div class="person-main">
+                <span class="person-name">${esc(r.rodic)}</span>
+                <span class="person-sub">dítě: ${esc(r.dite)}${r.email ? ' · <a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>' : ''}</span>
+              </div>
+              ${tlacitkoAkce(r)}
+            </li>`).join('')}</ul>` : '<p class="small muted">Zatím nikdo.</p>'}
+        </article>`;
+    }).join('') + '</div>';
+  }
+
+  function tlacitkoAkce(r) {
+    return r.stav === 'Aktivní'
+      ? `<button type="button" class="btn btn--danger-text btn--sm no-print" data-id="${esc(r.id)}" data-stav="Zrušeno" aria-label="Zrušit rezervaci: ${esc(r.rodic)}, ${esc(r.trida)}, ${r.hodina}. hodina">Zrušit</button>`
+      : `<span class="row no-print" style="flex-wrap: nowrap"><span class="badge badge--danger">Zrušeno</span><button type="button" class="btn btn--text btn--sm" data-id="${esc(r.id)}" data-stav="Aktivní" aria-label="Obnovit rezervaci: ${esc(r.rodic)}, ${esc(r.trida)}, ${r.hodina}. hodina">Obnovit</button></span>`;
+  }
+
+  const SLOUPCE = [
+    { k: 'rodic', t: 'Rodič' }, { k: 'dite', t: 'Dítě' }, { k: 'trida', t: 'Třída' }, { k: 'hodina', t: 'Hodina' },
+    { k: 'predmet', t: 'Předmět', bez: true }, { k: 'email', t: 'E-mail', bez: true }, { k: 'vytvoreno', t: 'Přihlášeno' }
+  ];
+
+  function serad(radky) {
+    const { klic, smer } = stav.razeni;
+    const hodnota = r => klic === 'vytvoreno' ? r.vytvorenoMs
+      : klic === 'hodina' ? r.hodina
+      : klic === 'trida' ? parseInt(r.trida, 10) * 10 + r.hodina / 10
+      : String(r[klic]);
+    return radky.slice().sort((a, b) => {
+      const x = hodnota(a), y = hodnota(b);
+      return (typeof x === 'number' ? x - y : x.localeCompare(y, 'cs')) * smer;
+    });
+  }
+
+  function vykresliSeznam(radky) {
+    const celkem = radky.length;
+    if (!celkem) { el('souhrn').textContent = ''; el('vysledky').innerHTML = prazdno(); return; }
+    const stranek = Math.max(1, Math.ceil(celkem / NA_STRANKU));
+    stav.stranka = Math.min(stav.stranka, stranek);
+    const od = (stav.stranka - 1) * NA_STRANKU;
+    const vyrez = serad(radky).slice(od, od + NA_STRANKU);
+    el('souhrn').textContent = celkem + ' ' + plural(celkem, 'rezervace', 'rezervace', 'rezervací');
+
+    const hlavicka = SLOUPCE.map(c => {
+      if (c.bez) return `<th scope="col">${c.t}</th>`;
+      const aktivni = stav.razeni.klic === c.k;
+      const sort = aktivni ? (stav.razeni.smer === 1 ? 'ascending' : 'descending') : 'none';
+      return `<th scope="col" aria-sort="${sort}"><button type="button" class="sort-btn" data-sort="${c.k}">${c.t}${aktivni ? ikona(stav.razeni.smer === 1 ? 'up' : 'down') : ''}</button></th>`;
+    }).join('') + '<th scope="col"><span class="visually-hidden">Akce</span></th>';
+
+    const tabulka = vyrez.map(r => `
+      <tr class="${r.stav !== 'Aktivní' ? 'is-cancelled' : ''}">
+        <td><strong>${esc(r.rodic)}</strong></td>
+        <td>${esc(r.dite)}</td>
+        <td>${esc(r.trida)}</td>
+        <td class="num">${r.hodina}. <span class="muted">${esc(cas(r.cas))}</span></td>
+        <td>${esc(r.predmet)}</td>
+        <td>${r.email ? '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>' : '<span class="muted">–</span>'}</td>
+        <td class="num muted">${esc(r.vytvoreno)}</td>
+        <td style="text-align: right">${tlacitkoAkce(r)}</td>
+      </tr>`).join('');
+
+    const karty = vyrez.map(r => `
+      <li class="rcard${r.stav !== 'Aktivní' ? ' is-cancelled' : ''}">
+        <div class="rcard-top">
+          <div class="person-main">
+            <span class="person-name">${esc(r.rodic)}</span>
+            <span class="person-sub">dítě: ${esc(r.dite)}</span>
+          </div>
+          <span class="badge badge--primary">${esc(r.trida)}</span>
+        </div>
+        <div class="person-sub"><strong style="color: var(--c-text)">${r.hodina}. hodina</strong> · <span class="num">${esc(cas(r.cas))}</span> · ${esc(r.predmet)}</div>
+        <div class="rcard-top">
+          <span class="person-sub">${r.email ? '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a> · ' : ''}${esc(r.vytvoreno)}</span>
+          ${tlacitkoAkce(r)}
+        </div>
+      </li>`).join('');
+
+    const strankovani = stranek > 1 ? `
+      <div class="pager no-print">
+        <span class="num">${od + 1}–${Math.min(od + NA_STRANKU, celkem)} z ${celkem}</span>
+        <div class="row">
+          <button type="button" class="btn btn--secondary btn--sm" data-strana="-1"${stav.stranka === 1 ? ' disabled' : ''}>Předchozí</button>
+          <button type="button" class="btn btn--secondary btn--sm" data-strana="1"${stav.stranka === stranek ? ' disabled' : ''}>Další</button>
+        </div>
+      </div>` : '';
+
+    // Na notebooku tabulka, na mobilu karty – přepíná CSS podle šířky.
+    el('vysledky').innerHTML = `
+      <div class="card table-card"><div class="table-wrap"><table class="data-table"><thead><tr>${hlavicka}</tr></thead><tbody>${tabulka}</tbody></table></div></div>
+      <div class="card cards-wrap"><ul class="cards">${karty}</ul></div>
+      ${strankovani}`;
+  }
+
+  el('vysledky').addEventListener('click', e => {
+    if (e.target.closest('[data-akce="vymazat"]')) { el('vymazat-filtry').click(); return; }
+    const s = e.target.closest('[data-sort]');
+    if (s) {
+      const k = s.dataset.sort;
+      stav.razeni = { klic: k, smer: stav.razeni.klic === k ? -stav.razeni.smer : (k === 'vytvoreno' ? -1 : 1) };
+      vykresli();
+      const znovu = el('vysledky').querySelector(`[data-sort="${k}"]`);
+      if (znovu) znovu.focus();
+      return;
+    }
+    const p = e.target.closest('[data-strana]');
+    if (p) { stav.stranka += Number(p.dataset.strana); vykresli(); el('prehled-h').focus(); return; }
+    const a = e.target.closest('[data-id]');
+    if (a) zmenitStav(a.dataset.id, a.dataset.stav, a);
+  });
+
+  async function zmenitStav(id, novy, tlacitko) {
+    const r = stav.data.rezervace.find(x => x.id === id);
+    if (tlacitko) tlacitko.disabled = true;
+    try {
+      prijmiData(await api('adminZmenitStav', stav.heslo, id, novy));
+      if (novy === 'Zrušeno') {
+        toast(`Zrušeno: ${r.rodic} – ${r.trida}, ${r.hodina}. hodina.`, { text: 'Vrátit zpět', fn: () => zmenitStav(id, 'Aktivní', null) });
+      } else {
+        toast(`Obnoveno: ${r.rodic} – ${r.trida}, ${r.hodina}. hodina.`);
+      }
+      if (tlacitko) el('prehled-h').focus({ preventScroll: true });
+    } catch (err) {
+      if (tlacitko) tlacitko.disabled = false;
+      toast('Změna se neuložila. ' + zprava(err));
+    }
+  }
+
+  /* ---------- Toast ---------- */
+
+  let toastCasovac = null;
+  function toast(text, akce) {
+    const oblast = el('toasty');
+    clearTimeout(toastCasovac);
+    oblast.innerHTML = `<div class="toast"><p>${esc(text)}</p>${akce ? `<button type="button" class="btn btn--text btn--sm" data-toast="akce">${esc(akce.text)}</button>` : ''}<button type="button" class="icon-btn" data-toast="zavrit" aria-label="Zavřít oznámení">${ikona('x')}</button></div>`;
+    const zavrit = () => { oblast.innerHTML = ''; };
+    oblast.querySelector('[data-toast="zavrit"]').onclick = zavrit;
+    if (akce) oblast.querySelector('[data-toast="akce"]').onclick = () => { zavrit(); akce.fn(); };
+    if (!akce) toastCasovac = setTimeout(zavrit, 5000);
+  }
+
+  start();
+</script>
+</body>
+</html>
