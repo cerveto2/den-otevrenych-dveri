@@ -81,19 +81,20 @@
   }
   .btn svg { width: 20px; height: 20px; flex: none; }
   .btn--primary { background: var(--c-primary); color: var(--c-on-primary); }
-  .btn--primary:hover { background: var(--c-primary-hover); }
+  .btn--primary:hover:not(:disabled) { background: var(--c-primary-hover); }
   .btn--secondary { background: var(--c-surface); color: var(--c-text); border-color: var(--c-border-strong); }
-  .btn--secondary:hover { background: var(--c-surface-muted); }
+  .btn--secondary:hover:not(:disabled) { background: var(--c-surface-muted); }
   .btn--text { background: transparent; color: var(--c-primary); padding: 0 var(--s-2); }
-  .btn--text:hover { background: var(--c-primary-tint); }
+  .btn--text:hover:not(:disabled) { background: var(--c-primary-tint); }
   .btn--danger-text { background: transparent; color: var(--c-danger); padding: 0 var(--s-3); }
-  .btn--danger-text:hover { background: var(--c-danger-tint); }
+  .btn--danger-text:hover:not(:disabled) { background: var(--c-danger-tint); }
   .btn--block { width: 100%; }
   .btn--sm { min-height: 36px; font-size: var(--t-sm); padding: 0 var(--s-3); }
   .btn:disabled, .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
-  .btn:disabled:hover { background: inherit; }
+  .btn[aria-busy="true"] { cursor: progress; }
 
   .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+  .spinner--lg { width: 28px; height: 28px; border-width: 3px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Formuláře */

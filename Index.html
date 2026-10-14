@@ -57,6 +57,10 @@
     .moje-head h2:focus { outline: none; }
     .moje-head h2:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
 
+    .loading-head { display: flex; gap: var(--s-3); align-items: center; margin-bottom: var(--s-2); }
+    .loading-head .spinner { color: var(--c-primary); flex: none; }
+    .loading-title { font-weight: 600; }
+    #odesilani-info { text-align: center; }
     .sk-line { height: 16px; }
     .sk-title { height: 28px; width: 60%; }
     .sk-block { height: 48px; }
@@ -76,12 +80,18 @@
   <main id="obsah">
     <div class="wrap stack">
 
-      <div id="nacitani" class="card stack-sm" aria-hidden="true" hidden>
-        <div class="skeleton sk-title"></div>
-        <div class="skeleton sk-line"></div>
-        <div class="skeleton sk-block"></div>
-        <div class="skeleton sk-block"></div>
-        <div class="skeleton sk-block"></div>
+      <div id="nacitani" class="card stack-sm" role="status" aria-live="polite">
+        <div class="loading-head">
+          <span class="spinner spinner--lg" aria-hidden="true"></span>
+          <div>
+            <p class="loading-title">Načítáme rozvrh a volná místa…</p>
+            <p class="small muted" id="nacitani-text">Může to trvat několik sekund. Nezavírejte prosím stránku.</p>
+          </div>
+        </div>
+        <div class="skeleton sk-line" aria-hidden="true"></div>
+        <div class="skeleton sk-block" aria-hidden="true"></div>
+        <div class="skeleton sk-block" aria-hidden="true"></div>
+        <div class="skeleton sk-block" aria-hidden="true"></div>
       </div>
 
       <div id="chyba-nacteni" class="card stack-sm" hidden>
@@ -149,7 +159,10 @@
 
           <div id="form-chyba" class="alert alert--danger" role="alert" hidden></div>
 
-          <button type="submit" class="btn btn--primary btn--block" id="odeslat">Rezervovat</button>
+          <div class="stack-sm" style="gap: var(--s-2)">
+            <button type="submit" class="btn btn--primary btn--block" id="odeslat">Rezervovat</button>
+            <p class="small muted" id="odesilani-info" role="status" hidden>Ukládáme vaši rezervaci, může to trvat několik sekund. Nezavírejte prosím stránku.</p>
+          </div>
         </form>
       </section>
 
@@ -230,10 +243,15 @@
 
   function nactiData() {
     el('chyba-nacteni').hidden = true;
-    const skeleton = setTimeout(() => { el('nacitani').hidden = false; }, 400);
+    el('nacitani').hidden = false;
+    el('nacitani-text').textContent = 'Může to trvat několik sekund. Nezavírejte prosím stránku.';
+    // Apps Script se po delší nečinnosti „probouzí“ – po chvíli rodiče uklidníme, že se pořád něco děje.
+    const dlouho = setTimeout(() => {
+      el('nacitani-text').textContent = 'Pořád načítáme – server se teprve probouzí. Ještě chvilku vydržte, obvykle to netrvá déle než půl minuty.';
+    }, 6000);
     api('getUvodniData', stav.token)
       .then(d => {
-        clearTimeout(skeleton);
+        clearTimeout(dlouho);
         el('nacitani').hidden = true;
         stav.data = d;
         stav.moje = d.moje;
@@ -241,7 +259,7 @@
         vykresli();
       })
       .catch(err => {
-        clearTimeout(skeleton);
+        clearTimeout(dlouho);
         el('nacitani').hidden = true;
         el('chyba-nacteni').hidden = false;
         el('chyba-nacteni-text').textContent = ' ' + zprava(err);
@@ -576,8 +594,10 @@
   function nastavOdesilani(ano) {
     stav.odesilam = ano;
     const b = el('odeslat');
-    b.disabled = ano;
-    b.innerHTML = ano ? '<span class="spinner" aria-hidden="true"></span>Ukládám…' : 'Rezervovat';
+    // Tlačítko nevypínáme (disabled by ho zesvětlilo) – opakované odeslání hlídá stav.odesilam.
+    b.setAttribute('aria-busy', String(ano));
+    b.innerHTML = ano ? '<span class="spinner" aria-hidden="true"></span>Ukládám rezervaci…' : 'Rezervovat';
+    el('odesilani-info').hidden = !ano;
   }
 
   /* ---------- Toast ---------- */
