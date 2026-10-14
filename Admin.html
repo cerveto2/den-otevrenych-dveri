@@ -33,6 +33,9 @@
     .cell.zero { color: var(--c-text-muted); font-weight: 400; }
     .cell[aria-pressed="true"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
     .cell-off { color: var(--c-border-strong); }
+    .row-btn { min-height: 40px; min-width: 48px; padding: 0 var(--s-2); border: 1px solid transparent; border-radius: var(--r-control); background: transparent; font: 600 var(--t-md)/1 var(--font); color: var(--c-text); cursor: pointer; text-align: left; }
+    .row-btn:hover { background: var(--c-surface-muted); }
+    .row-btn[aria-pressed="true"] { background: var(--c-primary); color: var(--c-on-primary); }
 
     .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); align-items: end; }
     .toolbar .field--search { grid-column: 1 / -1; }
@@ -157,7 +160,7 @@
         <section class="card no-print" aria-labelledby="matice-h">
           <div class="card-title">
             <h2 id="matice-h">Obsazenost</h2>
-            <p class="muted small">Počet přihlášených rodičů na hodinu. Klepnutím na číslo zobrazíte, kdo přijde.</p>
+            <p class="muted small">Počet přihlášených rodičů na hodinu. Klepnutím na číslo zobrazíte, kdo přijde na danou hodinu, klepnutím na třídu celý den.</p>
           </div>
           <div class="scroll-x"><table class="matrix" id="matice"></table></div>
         </section>
@@ -443,7 +446,8 @@
     const f = stav.filtry;
     el('matice').innerHTML =
       `<thead><tr><th scope="col"><span class="visually-hidden">Třída</span></th>${hodiny.map(h => `<th scope="col">${h}. h</th>`).join('')}</tr></thead><tbody>` +
-      tridy().map(t => `<tr><th scope="row">${esc(t)}</th>${hodiny.map(h => {
+      tridy().map(t => `<tr><th scope="row"><button type="button" class="row-btn" data-trida="${esc(t)}" aria-pressed="${f.trida === t && !f.hodina}"
+          aria-label="Třída ${esc(t)} – celý den">${esc(t)}</button></th>${hodiny.map(h => {
         const slot = rozvrh.find(x => x.trida === t && x.hodina === h);
         if (!slot || !slot.povoleno) return '<td class="cell-off"><span aria-hidden="true">–</span><span class="visually-hidden">nelze rezervovat</span></td>';
         const n = pocetRodin(aktivni.filter(r => r.trida === t && r.hodina === h));
@@ -454,6 +458,14 @@
   }
 
   el('matice').addEventListener('click', e => {
+    const radek = e.target.closest('.row-btn');
+    if (radek) {
+      const uzVybrano = radek.getAttribute('aria-pressed') === 'true';
+      stav.filtry.hodina = '';
+      nastavFiltr('trida', uzVybrano ? '' : radek.dataset.trida);
+      if (!uzVybrano) el('prehled-h').scrollIntoView({ behavior: plynule() });
+      return;
+    }
     const b = e.target.closest('.cell');
     if (!b) return;
     const uzVybrano = b.getAttribute('aria-pressed') === 'true';
