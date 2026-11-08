@@ -247,10 +247,23 @@
   function zapis(k, v, typ) { try { const u = typ === 's' ? sessionStorage : localStorage; v == null ? u.removeItem(k) : u.setItem(k, v); } catch (e) { /* nepovinné */ } }
   function plynule() { return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'; }
 
+  const API_URL = '';
+  const vAppsScriptu = typeof google !== 'undefined' && !!google.script;
+
   function api(fn, ...args) {
-    return new Promise((resolve, reject) => {
-      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
-    });
+    if (vAppsScriptu) {
+      return new Promise((resolve, reject) => {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+      });
+    }
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL)) {
+      return Promise.reject(new Error('Stránka není nastavená – v souboru chybí adresa webové aplikace (…/exec).'));
+    }
+    // text/plain = jednoduchý požadavek bez CORS preflightu; bez cookies, takže nevadí víc Google účtů.
+    return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args }), credentials: 'omit' })
+      .catch(() => { throw new Error('Nepodařilo se spojit se serverem. Zkontrolujte připojení k internetu a zkuste to znovu.'); })
+      .then(r => { if (!r.ok) throw new Error('Server odpověděl chybou ' + r.status + '.'); return r.json(); })
+      .then(o => { if (!o.ok) throw new Error(o.chyba); return o.vysledek; });
   }
 
   /* ---------- Přihlášení a načtení ---------- */

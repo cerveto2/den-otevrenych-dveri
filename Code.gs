@@ -122,6 +122,9 @@ function doPost(e) {
     let vysledek;
     if (pozadavek.fn === 'getUvodniData') vysledek = getUvodniData(args[0]);
     else if (pozadavek.fn === 'rezervovat') vysledek = rezervovat(args[0]);
+    // administrace (heslo ověřuje overHeslo_ na serveru)
+    else if (pozadavek.fn === 'adminData') vysledek = adminData(args[0]);
+    else if (pozadavek.fn === 'adminZmenitStav') vysledek = adminZmenitStav(args[0], args[1], args[2]);
     else throw new Error('Neznámá akce.');
     odpoved = { ok: true, vysledek: vysledek };
   } catch (err) {

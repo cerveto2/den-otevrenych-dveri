@@ -42,13 +42,13 @@ Když je telefon přihlášený do více Google účtů, Google u webové aplika
 
 - Repozitář: https://github.com/cerveto2/den-otevrenych-dveri
 - Stránka: https://cerveto2.github.io/den-otevrenych-dveri/
-- Při každém pushi do větve `main` ji GitHub Action (`.github/workflows/pages.yml`) sama sestaví z `Index.html` + `Styles.html` (`scripts/sestavit_stranku.py`) a nasadí – stačí upravit a pushnout.
+- Při každém pushi do větve `main` ji GitHub Action (`.github/workflows/pages.yml`) sama sestaví z `Index.html` / `Admin.html` + `Styles.html` (`scripts/sestavit_stranku.py`) a nasadí – stačí upravit a pushnout.
 - Adresa webové aplikace (`…/exec`) je ve `web.config.json` → `apiUrl`. Lze ji upravit i přímo na GitHubu v prohlížeči.
 - Adresu stránky na GitHubu mějte i v `Code.gs` → `KONFIG.verejnaAdresa`, aby osobní odkazy v e-mailech vedly sem.
 
 Apps Script se z GitHubu neaktualizuje sám – po změně `Code.gs`, `Index.html`, `Admin.html` nebo `Styles.html` vložte nový obsah do editoru Apps Scriptu a nasaďte novou verzi.
 
-Administrace zůstává na `…/exec?admin` (při potížích s více účty ji otevřete v anonymním okně).
+Administrace je na GitHub Pages také: https://cerveto2.github.io/den-otevrenych-dveri/admin/ (sestavuje se z `Admin.html` stejným skriptem). Funguje i v prohlížeči s více Google účty. Původní `…/exec?admin` funguje dál.
 
 ## Jak to funguje pro rodiče
 
@@ -62,7 +62,7 @@ Administrace zůstává na `…/exec?admin` (při potížích s více účty ji 
 5. Prohlížeč si rodiče pamatuje. Na jiném zařízení se k rezervacím dostanou přes **osobní odkaz** (zobrazí se na stránce a přijde e-mailem).
 6. Pokud vyberou dvě třídy ve stejnou hodinu, stránka je upozorní, že obě návštěvy nestihnou.
 
-## Administrace (`…/exec?admin`)
+## Administrace (`…/admin/` na GitHub Pages nebo `…/exec?admin`)
 
 - Souhrn: počet rodičů, dětí a návštěv.
 - **Obsazenost** – tabulka třída × hodina; klepnutí na číslo ukáže, kdo přijde.
